@@ -6,4 +6,4 @@
 	url = git://github.com/facebook/facebook-ios-sdk.git
 [submodule "lib/facebook-android-sdk"]
 	path = lib/facebook-android-sdk
-	url = git://github.com/facebook/facebook-android-sdk.git
+	url = git@github.com:irnc/facebook-ios-sdk.git
