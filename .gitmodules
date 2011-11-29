@@ -3,7 +3,7 @@
 	url = git://github.com/facebook/connect-js.git
 [submodule "lib/facebook-ios-sdk"]
 	path = lib/facebook-ios-sdk
-	url = git://github.com/facebook/facebook-ios-sdk.git
+	url = git@github.com:irnc/facebook-ios-sdk.git
 [submodule "lib/facebook-android-sdk"]
 	path = lib/facebook-android-sdk
-	url = git@github.com:irnc/facebook-ios-sdk.git
+	url = git://github.com/facebook/facebook-android-sdk.git
