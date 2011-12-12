@@ -1,3 +1,5 @@
+console.log('Executing "/includes/phonegap/pg-plugin-fb-connect.js" ...');
+
 PG = ( typeof PG == 'undefined' ? {} : PG );
 
 (function(){
