@@ -21,14 +21,18 @@ PG.FB = {
   login: function(params, cb, fail) {
     params = params || { scope: '' };
     Cordova.exec(function(e) { // login
-        if (e.authResponse && e.authResponse.expiresIn) {
-          var expirationTime = e.authResponse.expiresIn === 0
-          ? 0
-          : (new Date()).getTime() + e.authResponse.expiresIn * 1000;
-          e.authResponse.expirationTime = expirationTime;
+      var oldSdk = typeof e.session !== 'undefined',
+          response = oldSdk ? e.session : e.authResponse,
+          userId = oldSdk ? response.uid : response.userID,
+          accessToken = oldSdk ? response.access_token : response.accessToken,
+          expiresIn = oldSdk ? response.expires : response.expiresIn;
+
+        if (expiresIn) {
+          var expirationTime = expiresIn === 0 ? 0 : (new Date()).getTime() + expiresIn * 1000;
+          response.expirationTime = expirationTime;
         }
-        localStorage.setItem('pg_fb_session', JSON.stringify(e.authResponse));
-        FB.Auth.setAuthResponse(e.authResponse, 'connected');
+        localStorage.setItem('pg_fb_session', JSON.stringify(response));
+        FB.Auth.setAuthResponse(response, 'connected');
         if (cb) cb(e);
     }, (fail?fail:null), 'com.phonegap.facebook.Connect', 'login', params.scope.split(',') );
   },
