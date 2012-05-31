@@ -9,6 +9,7 @@
 
 #import "FacebookConnectPlugin.h"
 #import "JSON.h"
+#import "CDVDebug.h"
 
 @implementation FacebookConnectPlugin
 
@@ -22,36 +23,40 @@
 	if (![url isKindOfClass:[NSURL class]]) {
         return;
 	}
-    
+
 	[facebook handleOpenURL:url];
 }
 
 - (void) init:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
 {
+    DLog(@"Executing [FacebookConnectPlugin init: withDict:]");
+
     if ([arguments count] < 2) {
         return;
     }
-    
+
 	NSString* callbackId = [arguments objectAtIndex:0];
 	NSString* appId = [arguments objectAtIndex:1];
 	self.facebook = [[Facebook alloc] initWithAppId:appId andDelegate: self];
-	    
+
     // Check for any stored session update Facebook session information
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    if ([defaults objectForKey:@"FBAccessTokenKey"] 
+    if ([defaults objectForKey:@"FBAccessTokenKey"]
         && [defaults objectForKey:@"FBExpirationDateKey"]) {
         self.facebook.accessToken = [defaults objectForKey:@"FBAccessTokenKey"];
         self.facebook.expirationDate = [defaults objectForKey:@"FBExpirationDateKey"];
     }
-    
+
     CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [super writeJavascript:[result toSuccessCallbackString:callbackId]];
 }
 
 - (void) getLoginStatus:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
 {
+    DLog(@"Executing [FacebookConnectPlugin getLoginStatus: withDict:]");
+
     NSString* callbackId = [arguments objectAtIndex:0]; // first item is the callbackId
-    
+
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:[self responseObject]];
     NSString* callback = [pluginResult toSuccessCallbackString:callbackId];
     // we need to wrap the callback in a setTimeout(func, 0) so it doesn't block the UI (handleOpenURL limitation)
@@ -60,39 +65,46 @@
 
 - (void) login:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
 {
+    DLog(@"Executing [FacebookConnectPlugin login: withDict:]");
+
     if ([arguments count] < 2 || !self.facebook) {
         return;
     }
-        
+
     NSString* callbackId = [arguments objectAtIndex:0];// first item is the callbackId
-    
+
     NSMutableArray* marray = [NSMutableArray arrayWithArray:arguments];
     [marray removeObjectAtIndex:0]; // first item is the callbackId
-    
+
     // save the callbackId for the login callback
     self.loginCallbackId = callbackId;
-    
+
     return [facebook authorize:marray];
-    
+
     [super writeJavascript:nil];
 }
 
 - (void) logout:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
 {
+    DLog(@"Executing [FacebookConnectPlugin logout: withDict:]");
+
     if (!self.facebook) {
         return;
     }
-    
+
     NSString* callbackId = [arguments objectAtIndex:0]; // first item is the callbackId
-    
+
 	[facebook logout];
-    
+
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [super writeJavascript:[pluginResult toSuccessCallbackString:callbackId]];
 }
 
 - (void) showFeedPublishDialog:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
 {
+    // TODO change signature in DLog here and below
+    DLog(@"Executing [FacebookConnectPlugin showFeedPublishDialog: withDict:]");
+
     NSString* callbackId = [arguments objectAtIndex:0]; // first item is the callbackId
 
 	[facebook dialog:@"feed" andDelegate:self];
@@ -104,6 +116,8 @@
 
 - (void) showDialog:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options
 {
+    DLog(@"Executing [FacebookConnectPlugin showDialog: withDict:]");
+
     NSString* callbackId = [arguments objectAtIndex:0]; // first item is the callbackId
     NSString* method = [[NSString alloc] initWithString:[options objectForKey:@"method"]];
     if ([options objectForKey:@"method"]) {
@@ -122,7 +136,7 @@
 	[facebook dialog:method andParams:params andDelegate:self];
     [method release];
     [params release];
-    
+
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_NO_RESULT];
     NSString* callback = [pluginResult toSuccessCallbackString:callbackId];
     [super writeJavascript:[NSString stringWithFormat:@"setTimeout(function() { %@; }, 0);", callback]];
@@ -130,53 +144,57 @@
 
 - (void) dealloc
 {
+    DLog(@"Executing [FacebookConnectPlugin dealloc:]");
+
     self.facebook = nil;
     [super dealloc];
 }
 
 - (NSDictionary*) responseObject
 {
+    DLog(@"Executing [FacebookConnectPlugin responseObject:]");
+
     NSString* status = @"unknown";
     NSDictionary* sessionDict = nil;
-    
+
     NSTimeInterval expiresTimeInterval = [self.facebook.expirationDate timeIntervalSinceNow];
     NSString* expiresIn = @"0";
     if (expiresTimeInterval > 0) {
         expiresIn = [NSString stringWithFormat:@"%0.0f", expiresTimeInterval];
     }
-    
+
     if (self.facebook && [self.facebook isSessionValid]) {
-        
+
         status = @"connected";
         sessionDict = [NSDictionary dictionaryWithObjects: [NSArray arrayWithObjects:
-                          self.facebook.accessToken, 
+                          self.facebook.accessToken,
                           expiresIn,
                           @"...",
-                          [NSNumber numberWithBool:YES], 
-                          @"...", 
-                          @"...", 
-                          nil] 
+                          [NSNumber numberWithBool:YES],
+                          @"...",
+                          @"...",
+                          nil]
                 forKeys:[NSArray arrayWithObjects:
-                         @"accessToken", 
-                         @"expiresIn", 
-                         @"secret", 
-                         @"session_key", 
-                         @"sig", 
-                         @"userID", 
+                         @"accessToken",
+                         @"expiresIn",
+                         @"secret",
+                         @"session_key",
+                         @"sig",
+                         @"userID",
                          nil]];
     } else {
         sessionDict = [[NSDictionary new] autorelease];
     }
-    
+
     NSDictionary* statusDict = [NSDictionary dictionaryWithObjects:[NSArray arrayWithObjects:
-                                 status, 
-                                 sessionDict, 
-                                 nil] 
+                                 status,
+                                 sessionDict,
+                                 nil]
                         forKeys:[NSArray arrayWithObjects:
-                                 @"status", 
-                                 @"authResponse", 
+                                 @"status",
+                                 @"authResponse",
                                  nil]];
-        
+
     return statusDict;
 }
 
@@ -185,14 +203,16 @@
  */
 - (void) fbDidLogin
 {
+    DLog(@"Executing [FacebookConnectPlugin fbDidLogin:]");
+
     // Store session information
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     [defaults setObject:[self.facebook accessToken] forKey:@"FBAccessTokenKey"];
     [defaults setObject:[self.facebook expirationDate] forKey:@"FBExpirationDateKey"];
     [defaults synchronize];
-    
+
     [facebook requestWithGraphPath:@"me" andDelegate:self];
-    
+
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:
                             [self responseObject]];
     NSString* callback = [pluginResult toSuccessCallbackString:self.loginCallbackId];
@@ -203,6 +223,8 @@
 }
 
 - (void)fbDidLogout {
+    DLog(@"Executing [FacebookConnectPlugin fbDidLogout:]");
+
     // Cleared stored session information
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     [defaults removeObjectForKey:@"FBAccessTokenKey"];
@@ -211,10 +233,13 @@
 }
 
 - (void)fbDidNotLogin:(BOOL)cancelled {
+    DLog(@"Executing [FacebookConnectPlugin fbDidNotLogin:]");
 }
 
 - (void)fbDidExtendToken:(NSString*)accessToken
                expiresAt:(NSDate*)expiresAt {
+    DLog(@"Executing [FacebookConnectPlugin fbDidExtendToken: expiresAt:]");
+
     // Updated stored session information
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     [defaults setObject:accessToken forKey:@"FBAccessTokenKey"];
@@ -223,6 +248,7 @@
 }
 
 - (void)fbSessionInvalidated {
+    DLog(@"Executing [FacebookConnectPlugin fbSessionInvalidated:]");
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -233,7 +259,7 @@
 // */
 //- (void)requestLoading:(FBRequest *)request
 //{
-//	
+//
 //}
 
 ///**
@@ -241,7 +267,7 @@
 // */
 //- (void)request:(FBRequest *)request didReceiveResponse:(NSURLResponse *)response
 //{
-//	
+//
 //}
 
 /**
@@ -249,7 +275,7 @@
  */
 - (void)request:(FBRequest *)request didFailWithError:(NSError *)error
 {
-	
+    DLog(@"Executing [FacebookConnectPlugin request: didFailWithError:]");
 }
 
 /**
@@ -260,7 +286,9 @@
  * depending on thee format of the API response.
  */
 - (void) request:(FBRequest *)request didLoad:(id)result
-{    
+{
+    DLog(@"Executing [FacebookConnectPlugin request: didLoad:]");
+
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:
                                   [self responseObject]];
     NSString* callback = [pluginResult toSuccessCallbackString:self.loginCallbackId];
@@ -275,7 +303,7 @@
 // */
 //- (void)request:(FBRequest *)request didLoadRawResponse:(NSData *)data
 //{
-//	
+//
 //}
 
 
@@ -288,6 +316,7 @@
  */
 - (void)dialogDidComplete:(FBDialog *)dialog
 {
+    DLog(@"Executing [FacebookConnectPlugin dialogDidComplete:]");
 	// TODO
 }
 
@@ -296,7 +325,8 @@
  */
 - (void)dialogCompleteWithUrl:(NSURL *)url
 {
-	// TODO	
+    DLog(@"Executing [FacebookConnectPlugin dialogCompleteWithUrl:]");
+	// TODO
 }
 
 /**
@@ -304,7 +334,8 @@
  */
 - (void)dialogDidNotCompleteWithUrl:(NSURL *)url
 {
-	// TODO	
+    DLog(@"Executing [FacebookConnectPlugin dialogDidNotCompleteWithUrl:]");
+	// TODO
 }
 
 /**
@@ -312,7 +343,8 @@
  */
 - (void)dialogDidNotComplete:(FBDialog *)dialog
 {
-	// TODO	
+    DLog(@"Executing [FacebookConnectPlugin dialogDidNotComplete:]");
+	// TODO
 }
 
 /**
@@ -320,7 +352,7 @@
  */
 - (void)dialog:(FBDialog*)dialog didFailWithError:(NSError *)error
 {
-	
+    DLog(@"Executing [FacebookConnectPlugin dialog: didFailWithError:]");
 }
 
 /**
@@ -335,6 +367,7 @@
  */
 - (BOOL)dialog:(FBDialog*)dialog shouldOpenURLInExternalBrowser:(NSURL *)url
 {
+    DLog(@"Executing [FacebookConnectPlugin dialog: shouldOpenURLInExternalBrowser:]");
 	// TODO: pass this back to JS
 	return NO;
 }
